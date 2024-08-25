@@ -25,7 +25,6 @@ pool.connect();
 //Function to access main menu
 async function mainMenu() {
   const answer = await inquirer.prompt(menuQuestions);
-  console.log(answer);
   switch (answer.answer) {
     case 'viewEmployees':
       //Call viewEmployees function
@@ -37,6 +36,7 @@ async function mainMenu() {
       break;
     case 'updateRole':
       //Function to update employee role
+      updateRole();
       break;
     case 'viewRoles':
       //Call viewRoles function
@@ -52,6 +52,7 @@ async function mainMenu() {
       break;
     case 'addDepartment':
       //Call addDepartment function
+      addDepartment();
       break;
   }
 }
@@ -68,8 +69,9 @@ async function viewEmployees() {
     const departmentRows = departmentResults.rows;
     console.log("\n");
     console.table(departmentRows);
+    console.log("\n");
+    mainMenu();
   });
-  mainMenu();
 }
 
 //Function to add employee
@@ -82,9 +84,41 @@ async function addEmployee() {
   const res = await pool.query(queryText, userInput)
   console.log("\n");
     console.table(res.rows[0]);
+    mainMenu();
 }
 
 //Function to update employee role
+async function updateRole() {
+  const employeeData = await pool.query('SELECT * FROM employee')
+  let employeeList = employeeData.rows.map(({id, first_name, last_name})=>({
+    name: `${first_name} ${last_name}`, 
+    value: id
+  }))
+  const roleData = await pool.query('SELECT * FROM role')
+  let roleList = roleData.rows.map(({id, title})=>({
+    name: title, 
+    value: id
+  }))
+  inquirer.prompt([
+    {
+      type: 'list',
+      name: 'employeeId',
+      choices: employeeList,
+      message: 'Choose employee to update'
+    },
+    {
+      type: 'list',
+      name: 'roleId',
+      choices: roleList,
+      message: 'Choose new role for employee'
+    }
+  ])
+  .then(async (data)=>{
+    await pool.query('UPDATE employee SET role_id = $1 WHERE id = $2', [data.roleId, data.employeeId]);
+    console.log("Updated employee!");
+    mainMenu();
+  });
+}
 
 //Function to view all roles
 async function viewRoles() {
@@ -95,8 +129,9 @@ async function viewRoles() {
     const departmentRows = departmentResults.rows;
     console.log("\n");
     console.table(departmentRows);
+    console.log("\n");
+    mainMenu();
   });
-  mainMenu();
 }
 
 //Function to add role
@@ -109,6 +144,7 @@ async function addRole() {
   const res = await pool.query(queryText, userInput)
   console.log("\n");
     console.table(res.rows[0]);
+    mainMenu();
 }
 
 //Function to view all departments
@@ -120,17 +156,19 @@ async function viewDepartments() {
     const departmentRows = departmentResults.rows;
     console.log("\n");
     console.table(departmentRows);
+    console.log("\n");
+    mainMenu();
   });
-  mainMenu();
 }
 
 //Function to add department
 async function addDepartment() {
   const answer = await inquirer.prompt(addDepartmentQuestions);
-  const queryText = `INSERT INTO deparment(name) VALUES ($1) returning *`
-  const userInput = answer.name
+  const queryText = `INSERT INTO department(name) VALUES ($1) returning *`
+  const userInput = [answer.name];
   const res = await pool.query(queryText, userInput)
   console.log("\n");
     console.table(res.rows[0]);
+    mainMenu();
 }
 
